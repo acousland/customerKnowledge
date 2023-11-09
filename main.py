@@ -3,6 +3,7 @@ import extractAudio as ea
 import transcribe as ts
 import callFeatures as cf
 import openai
+import PiiDetect as pii
 from py2neo import Graph, Node, Relationship
 from dotenv import dotenv_values
 import configparser
@@ -26,6 +27,8 @@ os.makedirs(transcription_directory, exist_ok=True)
 feature_output_directory = config.get('Storage_Paths', 'feature_output_directory')
 os.makedirs(feature_output_directory, exist_ok=True)  
 
+graph.delete_all()
+
 # Iterate over video files
 for video_file in os.listdir(video_directory):
     if video_file.endswith('.mp4'):  # Assuming the video files are in mp4 format
@@ -44,11 +47,20 @@ for video_file in os.listdir(video_directory):
         ts.transcribePersist(audio_path, transcription_path)
         transcript = ts.transcribeRead(transcription_path)
         
+        #Detect Pii
+        PiiResults = pii.PiiDetectAggregate(transcription_path)
+
         # Extract call features
         cf.callFeaturesPersist(transcript, feature_file_path, OpenAIModel)
         call_features = cf.callFeaturesRead(feature_file_path)
 
-        callNode = Node("Customer Call")
+        if len(PiiResults) > 0:
+            PiiNodes = []
+            for index in PiiResults:
+                node = Node("PII", Pii_Type = index["type"], Pii_Score = index["max_score"], Call = base_filename) 
+                PiiNodes.append(node)
+
+        callNode = Node("Customer Call", call_name = base_filename)
         productNode = Node("Product", product=call_features["Product"])
         productIssueNode = Node("Issue", issue=call_features["Issue"])
         customerSentimentNode = Node("Customer_Sentiment" , sentiment=call_features["Customer_sentiment"])
@@ -56,6 +68,12 @@ for video_file in os.listdir(video_directory):
         callOutcomeNode = Node("Call_Outcome" , resolved=call_features["Resolution"])
         operatorNode = Node("Operator", name=call_features["Operator_name"])
         customerNode = Node("Customer", name=call_features["Customer_name"])
+
+
+        if len(PiiNodes) > 0:
+            for index in PiiNodes:
+                graph.create(index)
+                    
 
         graph.create(operatorNode)
         graph.create(customerNode)
@@ -65,6 +83,10 @@ for video_file in os.listdir(video_directory):
         graph.create(customerSentimentNode)
         graph.create(operatorSentimentNode)
         graph.create(callOutcomeNode)
+
+        if len(PiiNodes) > 0:
+            for index in PiiNodes:
+                graph.create(Relationship(callNode, "HAS_PII", index))
 
         graph.create(Relationship(callNode, "OPERATOR", operatorNode))
         graph.create(Relationship(callNode, "CUSTOMER", customerNode))
