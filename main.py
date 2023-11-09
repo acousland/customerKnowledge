@@ -5,27 +5,31 @@ import callFeatures as cf
 import openai
 from py2neo import Graph, Node, Relationship
 from dotenv import dotenv_values
+import configparser
 
-config = dotenv_values(".env")
-openai.api_key = config["OPENAI_API_KEY"]
-OpenAIModel = config["OPENAI_API_MODEL"]
-graph = Graph(config["NEO4J_SERVER"], 
-              auth=(config["NEO4J_USER"], 
-                    config["NEO4J_PASS"]))
+config = configparser.ConfigParser()
+config.read('config.ini')
+secrets = dotenv_values(".env")
+
+openai.api_key = secrets["OPENAI_API_KEY"]
+OpenAIModel = config.get('OpenAI', 'model')
+graph = Graph(secrets["NEO4J_SERVER"], 
+              auth=(secrets["NEO4J_USERNAME"], 
+                    secrets["NEO4J_PASSWORD"]))
 
 # Directory containing video files
-video_directory = 'assets/01_input_video'
+video_directory = config.get('Storage_Paths', 'video_directory')
 
 # Directory to store audio files
-audio_directory = 'assets/02_call_audio'
+audio_directory = config.get('Storage_Paths', 'audio_directory')
 os.makedirs(audio_directory, exist_ok=True)
 
 # Directory to store transcriptions
-transcription_directory = 'assets/03_transcriptions'
+transcription_directory = config.get('Storage_Paths', 'transcription_directory')
 os.makedirs(transcription_directory, exist_ok=True)  
 
 # Directory to store feature outputs
-feature_output_directory = 'assets/04_output_features'
+feature_output_directory = config.get('Storage_Paths', 'feature_output_directory')
 os.makedirs(feature_output_directory, exist_ok=True)  
 
 # Iterate over video files
@@ -49,7 +53,7 @@ for video_file in os.listdir(video_directory):
         # Extract call features
         cf.callFeaturesPersist(transcript, feature_file_path, OpenAIModel)
         call_features = cf.callFeaturesRead(feature_file_path)
-    
+
         callNode = Node("Customer Call")
         productNode = Node("Product", product=call_features["Product"])
         productIssueNode = Node("Issue", issue=call_features["Issue"])
