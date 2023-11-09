@@ -17,18 +17,12 @@ graph = Graph(secrets["NEO4J_SERVER"],
               auth=(secrets["NEO4J_USERNAME"], 
                     secrets["NEO4J_PASSWORD"]))
 
-# Directory containing video files
+# Establish working directories
 video_directory = config.get('Storage_Paths', 'video_directory')
-
-# Directory to store audio files
 audio_directory = config.get('Storage_Paths', 'audio_directory')
 os.makedirs(audio_directory, exist_ok=True)
-
-# Directory to store transcriptions
 transcription_directory = config.get('Storage_Paths', 'transcription_directory')
 os.makedirs(transcription_directory, exist_ok=True)  
-
-# Directory to store feature outputs
 feature_output_directory = config.get('Storage_Paths', 'feature_output_directory')
 os.makedirs(feature_output_directory, exist_ok=True)  
 
