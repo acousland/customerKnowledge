@@ -3,6 +3,7 @@ from pii_data.types.doc import DocumentChunk
 from pii_extract.api import PiiProcessor, PiiCollectionBuilder
 
 def PiiDetect(file):
+    print("Detecting PII")
     with open(file, 'r') as file:
             transcript = file.read()   
     chunk = DocumentChunk(id=0, data=transcript)
@@ -18,22 +19,14 @@ def PiiDetect(file):
 def PiiDetectAggregate(file):
     results = PiiDetect(file)
 
-    if not results:
-        return ""
-    else:
-        max_scores = {}
+    # Extract distinct types using a set comprehension
+    distinct_types = {result['type'] for result in results}
 
-        for item in results:
-            item_type = item['type']
-            # Convert numpy.float32 to Python float
-            item_score = float(item['process']['score'])
-            
-            if item_type not in max_scores or item_score > max_scores[item_type]:
-                max_scores[item_type] = item_score
+    # Convert the set to a list if you need a list specifically
+    distinct_types_list = list(distinct_types)
+            # Now you can write distinct_list to your NEO4J database
+            # Make sure to handle the conversion for all numpy.float32 values before writing to the database
 
-        distinct_list = [{'type': type_, 'max_score': score} for type_, score in max_scores.items()]
+    return(distinct_types_list)
 
-        # Now you can write distinct_list to your NEO4J database
-        # Make sure to handle the conversion for all numpy.float32 values before writing to the database
-
-        return(distinct_list)
+PiiBannedTypes = ['CREDIT_CARD', 'GOV_ID']

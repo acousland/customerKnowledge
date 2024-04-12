@@ -3,6 +3,7 @@ import os
 import json
 
 def callFeatures(transcript, model):    
+    print("Extracting call features")
     response = openai.ChatCompletion.create(
         model=model,
         response_format={ "type": "json_object" },
